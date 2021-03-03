@@ -1,0 +1,136 @@
+---
+title: "FML_project"
+author: "Momo"
+date: "22/02/2021"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Federal
+
+Information on the 42nd Parliament members were retrieved from [here](https://www.ourcommons.ca/members/en/search?parliament=42&caucusId=all&province=all&gender=all&view=list).
+Emily has already populated data for the (current) members of the 43rd Parliament.
+
+I am going to read in the csv files for raw 42nd and 43rd member csv files. 
+
+```{r 42nd}
+fourtysecond<-read.csv("42nd.csv", header=TRUE, sep=",", encoding="UTF-8")
+fourtythird<-read.csv("43rd.csv", header=TRUE, sep=",", encoding="UTF-8")
+```
+
+Loading in necessary libraries here:
+```{r warning=FALSE, message=FALSE}
+library(dplyr)
+library(tidyverse)
+ 
+```
+I will extract data already gathered for 43rd MPs (by Emily) and add it to 42nd MP data
+
+```{r message=F}
+bind<-left_join(fourtysecond, fourtythird)
+fourtysecond_data<-bind%>%
+  select(1:13, 17:18)
+
+
+```
+
+
+Find out how many 42nd MPs have no data. 
+
+```{r }
+missing<-anti_join(fourtysecond, fourtythird)
+```
+**We need to gather data for `r nrow(anti_join(fourtysecond, fourtythird))` MPs.** 
+And saving the file with the names of MPs that are missing info.
+
+```{r eval=F}
+write.csv(missing, "42nd_missing_info.csv")
+```
+
+
+
+## Web scraping wiki
+Loading the libraries that are needed
+```{r warning=FALSE, message=FALSE }
+library(XML)
+library(rvest)
+library(dplyr)
+```
+
+Here are the names of the MPs with missing birth dates
+```{r}
+Name <-missing%>%
+  select(First.Name, Last.Name)%>%
+  unite(Full, First.Name, Last.Name, sep=" ", remove=FALSE)
+Name
+
+```
+And here is the function and loop for grabbing birth years from wikipedia
+
+```{r}
+person<-"Rona Ambrose"
+  
+ FUN<- function(person) {
+    link <- paste0("https://en.wikipedia.org/wiki/", str_replace_all(person, " ", "_"))
+    
+    wiki <- read_html(link)
+    
+    
+    tab<-wiki%>%
+      html_nodes("table")%>%
+      html_table(fill=TRUE)%>%
+      .[[1]]
+    bd<-tab%>%
+      rename(col1=1)%>%
+      rename(col2=2)%>%
+      filter(col1=="Born")
+    bd%>%
+      select(col2)
+  }
+
+Name$Birth.Date <- ""
+for (i in 1:nrow(Name)) {
+  tryCatch({
+    Name$Birth.Date[i] <- FUN(Name$Full[i])
+    print(paste("Got bday for", Name$Full[i]))
+  }, error = function(e) {
+    print(paste("Error for", Name$Full[i]))
+  })
+}
+
+Name
+```
+
+Subsetting to prepare for joining with original "42nd_data.csv" file
+
+```{r}
+subName<-Name%>%
+  select(Last.Name, Birth.Date)
+  
+```
+
+
+
+Now I will bring the data into to the "42nd_data.csv" file.
+
+```{r}
+df<-left_join(fourtysecond_data, subName, by=
+                 "Last.Name")
+fourtysecond_new<-apply(df, 2, as.character)
+```
+
+Save new 42nd MP data file.
+```{r eval=F}
+write.csv(fourtysecond_new, "42nd_data.csv")
+
+```
+I definitely need some help cleaning it a little bit by deleting all the unnecessary information that came along with the birth dates!
+
+
+
