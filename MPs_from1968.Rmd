@@ -1,0 +1,130 @@
+---
+title: "MPs (1968 to current)"
+author: "Momo"
+date: "12/03/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Federal
+
+Information on the Parliament members from 1968 to current.  
+
+I will read in the csv file.  
+
+```{r 42nd}
+allmps<-read.csv("all_MPs.csv", header=TRUE, sep=",", encoding="UTF-8")
+head(allmps)
+```
+
+Loading in necessary libraries here for data wrangling:
+```{r warning=FALSE, message=FALSE}
+library(dplyr)
+library(tidyverse)
+```
+
+
+## Web scraping from wiki
+Loading the libraries that are needed
+```{r warning=FALSE, message=FALSE }
+library(XML)
+library(rvest)
+```
+
+I will need to create a new column with the names appearing as First-Middle-Last rather than Last, First.
+```{r}
+allmps$Name2<-sub("(\\w+),\\s(\\w+)","\\2 \\1", allmps$Name)
+
+get.first.name <- function(Name2) {
+  lapply(ifelse(grepl(",",Name2),strsplit(Name2,","),strsplit(Name2," ")),`[[`,1)
+}
+
+get.last.name <- function(Name2) {
+  d <- lapply(ifelse(grepl(",",Name2),strsplit(Name2,","),strsplit(Name2," ")),`[[`,2)
+  lapply(strsplit(gsub("^ ","",d), " "),`[[`,1)
+}
+
+allmps_new <- allmps %>% 
+  mutate(first.name=get.first.name(Name2),
+                     last.name=get.last.name(Name2))%>%
+  unite(Full, first.name, last.name, sep=" ", remove=FALSE)
+```
+
+
+I now have a column "Full" that can be used to scrape on wiki
+```{r}
+head(allmps_new)
+```
+Creating a subset with just Full name
+```{r}
+Name<-allmps_new%>%
+  select(Full)
+
+```
+
+
+And here is the function and loop for grabbing birth years from wikipedia
+
+```{r eval=F}
+person<-"Rona Ambrose"
+  
+ FUN<- function(person) {
+    link <- paste0("https://en.wikipedia.org/wiki/", str_replace_all(person, " ", "_"))
+    
+    wiki <- read_html(link)
+    
+    
+    tab<-wiki%>%
+      html_nodes("table")%>%
+      html_table(fill=TRUE)%>%
+      .[[1]]
+    bd<-tab%>%
+      rename(col1=1)%>%
+      rename(col2=2)%>%
+      filter(col1=="Born")
+    bd%>%
+      select(col2)
+  }
+
+head(Name)
+  
+Name$Birth.Date <- ""
+for (i in 1:nrow(Name)) {
+  tryCatch({
+    Name$Birth.Date[i] <- FUN(Name$Full[i])
+    print(paste("Got bday for", Name$Full[i]))
+  }
+  , error = function(e) {
+    #print(paste("Error for", Name$Full[i]))
+  }
+)
+}
+
+```
+
+
+
+Now I will bring the data into to the original "all_MPs" file.
+
+```{r}
+head(allmps_new)
+df<-left_join(allmps_new, Name, by=
+                 "Full")%>%
+  select(-c(Name2, first.name, last.name))
+allmps<-df%>%
+  mutate(Birth.Date=sapply(Birth.Date, toString))
+
+
+head(allmps)  
+```
+
+Save new 42nd MP data file.
+```{r eval=F}
+write.csv(allmps, "all_MPs_bd.csv")
+
+```
+
+
