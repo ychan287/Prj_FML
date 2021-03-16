@@ -36,6 +36,9 @@ library(rvest)
 
 I will need to create a new column with the names appearing as First-Middle-Last rather than Last, First.
 ```{r}
+allmps<-allmps%>%
+  rename(Name=1)
+
 allmps$Name2<-sub("(\\w+),\\s(\\w+)","\\2 \\1", allmps$Name)
 
 get.first.name <- function(Name2) {
@@ -66,12 +69,12 @@ Name<-allmps_new%>%
 ```
 
 
-And here is the function and loop for grabbing birth years from wikipedia
+And here is the function for grabbing birth years from wikipedia table
 
 ```{r eval=F}
 person<-"Rona Ambrose"
   
- FUN<- function(person) {
+ BD<- function(person) {
     link <- paste0("https://en.wikipedia.org/wiki/", str_replace_all(person, " ", "_"))
     
     wiki <- read_html(link)
@@ -89,12 +92,35 @@ person<-"Rona Ambrose"
       select(col2)
   }
 
-head(Name)
-  
+```  
+
+And here is the function for grabbing occupation from wiki table
+```{r}
+ OC<- function(person) {
+    link1 <- paste0("https://en.wikipedia.org/wiki/", str_replace_all(person, " ", "_"))
+    
+    wiki1 <- read_html(link1)
+    
+    
+    tab1<-wiki1%>%
+      html_nodes("table")%>%
+      html_table(fill=TRUE)%>%
+      .[[1]]
+    oc<-tab1%>%
+      rename(col1=1)%>%
+      rename(col2=2)%>%
+     slice(3:3)
+    oc%>%
+      select(col2)
+  }
+```
+Here is the loop to grab birth date and occupation
+
+```{r}
 Name$Birth.Date <- ""
 for (i in 1:nrow(Name)) {
   tryCatch({
-    Name$Birth.Date[i] <- FUN(Name$Full[i])
+    Name$Birth.Date[i] <- BD(Name$Full[i])
     print(paste("Got bday for", Name$Full[i]))
   }
   , error = function(e) {
@@ -103,6 +129,17 @@ for (i in 1:nrow(Name)) {
 )
 }
 
+Name$Occupation <- ""
+for (i in 1:nrow(Name)) {
+  tryCatch({
+    Name$Occupation[i] <- OC(Name$Full[i])
+    print(paste("Got occupation for", Name$Full[i]))
+  }
+  , error = function(e) {
+    #print(paste("Error for", Name$Full[i]))
+  }
+)
+}
 ```
 
 
@@ -111,11 +148,15 @@ Now I will bring the data into to the original "all_MPs" file.
 
 ```{r}
 head(allmps_new)
+allmps_new<-allmps_new%>%
+  select(-first.name, -last.name, -Name2)
 df<-left_join(allmps_new, Name, by=
-                 "Full")%>%
-  select(-c(Name2, first.name, last.name))
+                 "Full")
+head(df)
+
 allmps<-df%>%
-  mutate(Birth.Date=sapply(Birth.Date, toString))
+  mutate(Birth.Date=sapply(Birth.Date, toString))%>%
+  mutate(Occupation=sapply(Occupation, toString))
 
 
 head(allmps)  
