@@ -1,5 +1,5 @@
 ---
-title: "MPs (1968 to current)"
+title: "Part 1: Scraping MP birth dates (1968 to current)"
 author: "Momo"
 date: "12/03/2021"
 output: html_document
@@ -9,7 +9,7 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Federal
+## Initial collection of birth dates from wiki
 
 Information on the Parliament members from 1968 to current.  
 
@@ -167,5 +167,4 @@ Save new 42nd MP data file.
 write.csv(allmps, "all_MPs_bd.csv")
 
 ```
-
 
