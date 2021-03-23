@@ -1,0 +1,58 @@
+---
+title: "Part 2: Double check data on birth dates"
+author: "Momo"
+date: "12/03/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Parse birth date
+
+First, read the .csv file with initial collection of birth dates from part 1. 
+```{r}
+
+bd_part1<-read.csv("all_MPs_bd.csv", header=TRUE, sep=",", encoding="UTF-8")
+head(bd_part1)
+```
+
+Load libraries
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+library(stringr)
+```
+
+Change "Birth.Date" column to "Birth.Date_raw"
+
+```{r}
+bd_part1<-bd_part1%>%
+  mutate(Birth.Date_raw=Birth.Date)%>%
+  select(-Birth.Date)
+head(bd_part1)
+```
+
+
+Parse date from Birth.Date_raw column
+
+```{r}
+bd_part1_parse<-bd_part1%>%
+  dplyr::mutate(Birth.Date=str_extract(Birth.Date_raw, "(?<=[(])[^)]+"))
+head(bd_part1_parse)
+```
+Add "Start_date" and "End_date" columns for the time in office
+
+```{r}
+start<-bd_part1_parse%>%
+  dplyr::mutate(Start_date=str_extract(Political.Affiliation, "(?<=[(])[^-]+"))%>%
+  dplyr::mutate(End_date=str_extract(Political.Affiliation, "(?<=[-])[^)]+"))
+head(start)
+```
+
+Save part2 42nd MP data file.
+```{r eval=F}
+write.csv(start, "all_MPs_bd_2.csv")
+
+```
+
