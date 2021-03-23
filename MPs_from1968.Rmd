@@ -116,7 +116,7 @@ And here is the function for grabbing occupation from wiki table
 ```
 Here is the loop to grab birth date and occupation
 
-```{r}
+```{r eval=FALSE}
 Name$Birth.Date <- ""
 for (i in 1:nrow(Name)) {
   tryCatch({
