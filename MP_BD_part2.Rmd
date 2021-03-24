@@ -56,3 +56,44 @@ write.csv(start, "all_MPs_bd_2.csv")
 
 ```
 
+## Checking against Emily's 43rd data
+Load libraries
+```{r message=FALSE, warning=FALSE}
+library(tidyr)
+```
+
+Load 43rd data
+```{r}
+MPs_2<-read.csv("all_MPs_bd_2.csv", header=TRUE, sep=",", encoding="UTF-8" )
+fourtythird<-read.csv("43rd.csv", header=TRUE, sep=",", encoding="UTF-8")
+head(fourtythird)
+head(MPs_2)
+```
+
+Add column "Full" in fourtythird dataframe.
+
+```{r}
+Full<-fourtythird%>%
+  unite(Full, First.Name, Last.Name, sep=" ", remove=FALSE)%>%
+  select(Full, Birth.Date)
+head(Full)
+```
+
+Bring in birthdates for 43rd members into all_MPs spreadsheet
+
+```{r}
+bind<-left_join(MPs_2, Full, by="Full")
+head(bind)
+```
+
+Update the "Birth.Date" column by filling in missing birth dates from 43rd MP list
+
+```{r}
+all_MPs_3<-bind%>%
+  mutate(Birth.Date.x=coalesce(Birth.Date.x, Birth.Date.y))%>%
+  mutate(Birth.Date=Birth.Date.x)%>%
+  select(-Birth.Date.x, -Birth.Date.y, -X.1, -X)
+colnames(all_MPs_3)
+```
+
+
