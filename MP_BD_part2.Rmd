@@ -96,4 +96,8 @@ all_MPs_3<-bind%>%
 colnames(all_MPs_3)
 ```
 
+Save new 42nd MP data file.
+```{r eval=F}
+write.csv(all_MPs_3, "all_MPs_bd_3.csv")
 
+```
