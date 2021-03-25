@@ -1,0 +1,128 @@
+---
+title: "Momo's code"
+author: "Momo"
+date: "24/03/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Updating the csv
+
+Some wiki sites had "(politician)" next to their names so I will try to scrape those names. I will first extract the rows with missing birthdays. 
+
+
+Load libraries
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+library(stringr)
+library(tidyr)
+```
+
+Read csv file
+```{r}
+allmps<-read.csv("all_MPs_bd_3.csv", header=TRUE, sep=",", encoding="UTF-8", na.strings = c("","NA"))
+head(allmps)
+
+```
+Extract rows with missing Birth.Dates
+
+```{r}
+missing<-allmps%>%
+  select(Full, Birth.Date_raw)%>%
+  filter_all(any_vars(is.na(.)))%>%
+  mutate(politician="(politician)")%>%
+  mutate(Full_new= Full)%>%
+  unite(Full_new, Full_new,politician)
+head(missing)
+```
+Loading libraries needed
+```{r warning=FALSE, message=FALSE }
+library(XML)
+library(rvest)
+```
+And here is the function for grabbing birth years for those names with "(politician)" next to their name -  from wikipedia table
+
+```{r}
+person<-"Peter Adams_(politician)"
+  
+ BD<- function(person) {
+    link <- paste0("https://en.wikipedia.org/wiki/", str_replace_all(person, " ", "_"))
+    link
+    wiki <- read_html(link)
+    
+    
+    tab<-wiki%>%
+      html_nodes("table")%>%
+      html_table(fill=TRUE)%>%
+      .[[1]]
+    bd<-tab%>%
+      rename(col1=1)%>%
+      rename(col2=2)%>%
+      filter(col1=="Born")
+    bd%>%
+      select(col2)
+  }
+
+```  
+
+And here is the function for grabbing occupation from wiki table
+```{r}
+ OC<- function(person) {
+    link1 <- paste0("https://en.wikipedia.org/wiki/", str_replace_all(person, " ", "_"))
+    wiki1 <- read_html(link1)
+    
+    
+    tab1<-wiki1%>%
+      html_nodes("table")%>%
+      html_table(fill=TRUE)%>%
+      .[[1]]
+    oc<-tab1%>%
+      rename(col1=1)%>%
+      rename(col2=2)%>%
+     slice(3:3)
+    oc%>%
+      select(col2)
+  }
+```
+Here is the loop to grab birth date and occupation
+
+```{r}
+missing$Birth.Date <- ""
+for (i in 1:nrow(missing)) {
+  tryCatch({
+    missing$Birth.Date[i] <- BD(missing$Full_new[i])
+    print(paste("Got bday for", missing$Full_new[i]))
+  }
+  , error = function(e) {
+    print(paste("Error for", missing$Full_new[i]))
+  }
+)
+}
+```
+
+Now I will bring the data into to the original "all_MPs" file.
+
+```{r}
+tent<-missing%>%
+  mutate(Birth.Date_raw=Birth.Date)
+tent1<-tent%>% 
+mutate(Birth.Date_raw=sapply(Birth.Date_raw, toString))%>%
+  select(Full, Birth.Date_raw)
+head(tent1)
+
+df1<-left_join(allmps, tent1, by="Full")
+head(df1)
+df2<-df1%>%
+  coalesce(Birth.Date_raw.x, Birth.Date_raw.y)
+
+allmps<-df%>%
+  mutate(Birth.Date=sapply(Birth.Date, toString))%>%
+  mutate(Occupation=sapply(Occupation, toString))
+
+
+head(allmps)  
+```
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
