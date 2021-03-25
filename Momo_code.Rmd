@@ -23,8 +23,8 @@ library(tidyr)
 
 Read csv file
 ```{r}
-allmps<-read.csv("all_MPs_bd_3.csv", header=TRUE, sep=",", encoding="UTF-8", na.strings = c("","NA"))
-head(allmps)
+allmps<-read.csv("all_MPs_bd_3.csv", header=TRUE, sep=",", encoding="UTF-8-BOM", na.strings = c("","NA"))
+
 
 ```
 Extract rows with missing Birth.Dates
@@ -90,10 +90,10 @@ And here is the function for grabbing occupation from wiki table
 Here is the loop to grab birth date and occupation
 
 ```{r}
-missing$Birth.Date <- ""
+missing$BD <- ""
 for (i in 1:nrow(missing)) {
   tryCatch({
-    missing$Birth.Date[i] <- BD(missing$Full_new[i])
+    missing$BD[i] <- BD(missing$Full_new[i])
     print(paste("Got bday for", missing$Full_new[i]))
   }
   , error = function(e) {
@@ -106,23 +106,17 @@ for (i in 1:nrow(missing)) {
 Now I will bring the data into to the original "all_MPs" file.
 
 ```{r}
-tent<-missing%>%
-  mutate(Birth.Date_raw=Birth.Date)
-tent1<-tent%>% 
-mutate(Birth.Date_raw=sapply(Birth.Date_raw, toString))%>%
-  select(Full, Birth.Date_raw)
-head(tent1)
+head(missing)
+tent<-missing%>% 
+mutate(BD=sapply(BD, toString))
+tent1<-tent%>%
+  select(Full, BD)
 
 df1<-left_join(allmps, tent1, by="Full")
 head(df1)
 df2<-df1%>%
-  coalesce(Birth.Date_raw.x, Birth.Date_raw.y)
+    dplyr::mutate(BD=str_extract(BD, "(?<=[(])[^)]+"))
 
-allmps<-df%>%
-  mutate(Birth.Date=sapply(Birth.Date, toString))%>%
-  mutate(Occupation=sapply(Occupation, toString))
-
-
-head(allmps)  
+write.csv(df2, "Momo_BD.csv")
 ```
 Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
