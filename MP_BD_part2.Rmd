@@ -14,7 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 First, read the .csv file with initial collection of birth dates from part 1. 
 ```{r}
 
-bd_part1<-read.csv("all_MPs_bd.csv", header=TRUE, sep=",", encoding="UTF-8")
+bd_part1<-read.csv("all_MPs_bd.csv", header=TRUE, sep=",", encoding="UTF-8-BOM")
 head(bd_part1)
 ```
 
@@ -22,22 +22,23 @@ Load libraries
 ```{r message=FALSE, warning=FALSE}
 library(dplyr)
 library(stringr)
+library(tidyr)
 ```
 
 Change "Birth.Date" column to "Birth.Date_raw"
 
 ```{r}
-bd_part1<-bd_part1%>%
+bd_part2<-bd_part1%>%
   mutate(Birth.Date_raw=Birth.Date)%>%
   select(-Birth.Date)
-head(bd_part1)
+head(bd_part2)
 ```
 
 
 Parse date from Birth.Date_raw column
 
 ```{r}
-bd_part1_parse<-bd_part1%>%
+bd_part1_parse<-bd_part2%>%
   dplyr::mutate(Birth.Date=str_extract(Birth.Date_raw, "(?<=[(])[^)]+"))
 head(bd_part1_parse)
 ```
@@ -64,7 +65,7 @@ library(tidyr)
 
 Load 43rd data
 ```{r}
-MPs_2<-read.csv("all_MPs_bd_2.csv", header=TRUE, sep=",", encoding="UTF-8" )
+MPs_2<-read.csv("all_MPs_bd_2.csv", header=TRUE, sep=",", encoding="UTF-8-BOM" )
 fourtythird<-read.csv("43rd.csv", header=TRUE, sep=",", encoding="UTF-8")
 head(fourtythird)
 head(MPs_2)
@@ -89,15 +90,18 @@ head(bind)
 Update the "Birth.Date" column by filling in missing birth dates from 43rd MP list
 
 ```{r}
+colnames(bind)
 all_MPs_3<-bind%>%
   mutate(Birth.Date.x=coalesce(Birth.Date.x, Birth.Date.y))%>%
-  mutate(Birth.Date=Birth.Date.x)%>%
-  select(-Birth.Date.x, -Birth.Date.y, -X.1, -X)
-colnames(all_MPs_3)
+  mutate(Birth.Date=Birth.Date.x)
+all_MPs_3a<-all_MPs_3%>%select(-Birth.Date.x, -Birth.Date.y)
+colnames(all_MPs_3a)
 ```
 
 Save new 42nd MP data file.
 ```{r eval=F}
-write.csv(all_MPs_3, "all_MPs_bd_3.csv")
-
+write.csv(all_MPs_3a, "all_MPs_bd_3.csv")
 ```
+
+
+
