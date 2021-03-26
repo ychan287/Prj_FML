@@ -24,8 +24,6 @@ library(tidyr)
 Read csv file
 ```{r}
 allmps<-read.csv("all_MPs_bd_3.csv", header=TRUE, sep=",", encoding="UTF-8-BOM", na.strings = c("","NA"))
-
-
 ```
 Extract rows with missing Birth.Dates
 
@@ -45,7 +43,7 @@ library(rvest)
 ```
 And here is the function for grabbing birth years for those names with "(politician)" next to their name -  from wikipedia table
 
-```{r}
+```{r eval=FALSE}
 person<-"Peter Adams_(politician)"
   
  BD<- function(person) {
@@ -69,7 +67,7 @@ person<-"Peter Adams_(politician)"
 ```  
 
 And here is the function for grabbing occupation from wiki table
-```{r}
+```{r eva=FALSE}
  OC<- function(person) {
     link1 <- paste0("https://en.wikipedia.org/wiki/", str_replace_all(person, " ", "_"))
     wiki1 <- read_html(link1)
@@ -89,7 +87,7 @@ And here is the function for grabbing occupation from wiki table
 ```
 Here is the loop to grab birth date and occupation
 
-```{r}
+```{r eval=FALSE}
 missing$BD <- ""
 for (i in 1:nrow(missing)) {
   tryCatch({
@@ -117,6 +115,24 @@ head(df1)
 df2<-df1%>%
     dplyr::mutate(BD=str_extract(BD, "(?<=[(])[^)]+"))
 
-write.csv(df2, "Momo_BD.csv")
+#write.csv(df2, "Momo_BD.csv")
 ```
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+# Second attempt
+
+Scrape using format "First_Middle_Last)
+
+Read csv file
+```{r}
+df<-read.csv("Momo_BD.csv", header=TRUE, sep=",", encoding="UTF-8-BOM", na.strings = c("","NA"))
+head(df)
+```
+
+Coalesce columns "Birth.Date" and "BD"
+```{r}
+
+```
+
+
+
+
