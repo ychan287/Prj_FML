@@ -126,13 +126,95 @@ Read csv file
 ```{r}
 df<-read.csv("Momo_BD.csv", header=TRUE, sep=",", encoding="UTF-8-BOM", na.strings = c("","NA"))
 head(df)
+colnames(df)
 ```
 
-Coalesce columns "Birth.Date" and "BD"
+Remove duplicate rows
 ```{r}
+df1<-df%>%
+  distinct(Name, Type.of.Parliamentarian, .keep_all=TRUE)
 
 ```
 
+
+Extract rows with NA in "Birth.Date" AND in "BD". Then select only the names with middle names.
+```{r}
+df2<-df1%>%
+  filter(is.na(Birth.Date))%>%
+  filter(is.na(BD))%>%
+  select(Name)
+head(df2)
+
+df2$Name2<-sub("(\\w+),\\s(\\w+)\\s(\\w+)","\\2 \\3 \\1", df2$Name)
+
+df3<-df2%>%
+  filter(str_detect(Name2, "(\\w+)\\s(\\w+)\\s(\\w+)"))
+
+```
+And here is the function for grabbing birth years for those names with "(politician)" next to their name -  from wikipedia table
+
+```{r eval=FALSE}
+person<-"John Black Aird"
+  
+ BD<- function(person) {
+    link <- paste0("https://en.wikipedia.org/wiki/", str_replace_all(person, " ", "_"))
+        wiki <- read_html(link)
+    
+    
+    tab<-wiki%>%
+      html_nodes("table")%>%
+      html_table(fill=TRUE)%>%
+      .[[1]]
+    bd<-tab%>%
+      rename(col1=1)%>%
+      rename(col2=2)%>%
+      filter(col1=="Born")
+    bd%>%
+      select(col2)
+  }
+
+```  
+
+And here is the function for grabbing occupation from wiki table
+```{r eva=FALSE}
+ OC<- function(person) {
+    link1 <- paste0("https://en.wikipedia.org/wiki/", str_replace_all(person, " ", "_"))
+    wiki1 <- read_html(link1)
+    
+    
+    tab1<-wiki1%>%
+      html_nodes("table")%>%
+      html_table(fill=TRUE)%>%
+      .[[1]]
+    oc<-tab1%>%
+      rename(col1=1)%>%
+      rename(col2=2)%>%
+     slice(3:3)
+    oc%>%
+      select(col2)
+  }
+```
+Here is the loop to grab birth date and occupation
+
+```{r eval=FALSE}
+df3$BD2 <- ""
+for (i in 1:nrow(df3)) {
+  tryCatch({
+    df3$BD2[i] <- BD(df3$Name2[i])
+    print(paste("Got bday for", df3$Name2[i]))
+  }
+  , error = function(e) {
+    print(paste("Error for", df3$Name2[i]))
+  }
+)
+}
+
+tent<-df3%>% 
+mutate(BD2=sapply(BD2, toString))
+
+
+write.csv(tent, "Momo_BD2.csv")
+```
 
 
 
